@@ -1,0 +1,87 @@
+services:
+  # ---------- Database SQL ----------
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: appdb
+    ports: ["3306:3306"]
+    volumes: [mysql_data:/var/lib/mysql]
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: appdb
+    ports: ["5432:5432"]
+    volumes: [pg_data:/var/lib/postgresql/data]
+
+  # ---------- Database NoSQL ----------
+  mongo:
+    image: mongo:4.4
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+    ports: ["27017:27017"]
+    volumes: [mongo_data:/data/db]
+
+  # ---------- Tools admin database ----------
+  phpmyadmin:
+    image: phpmyadmin:latest
+    environment:
+      PMA_HOST: mysql
+    ports: ["8081:80"]
+    depends_on: [mysql]
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports: ["8082:80"]
+    depends_on: [postgres]
+
+  mongo-express:
+    image: mongo-express:latest
+    restart: on-failure
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: admin123
+      ME_CONFIG_MONGODB_URL: mongodb://admin:admin123@mongo:27017/
+    ports: ["8083:8081"]
+    depends_on: [mongo]
+
+  # ---------- Web service / API ----------
+  php-api:
+    build: ./php
+    ports: ["8084:80"]
+    depends_on: [mysql]
+
+  python-api:
+    build: ./python
+    ports: ["8085:5000"]
+    depends_on: [postgres, mongo]
+
+  # ---------- Frontend ----------
+  node-frontend:
+    build: ./node
+    ports: ["3000:3000"]
+
+  # ---------- Messaging ----------
+  mqtt:
+    image: eclipse-mosquitto:2
+    command: mosquitto -c /mosquitto-no-auth.conf
+    ports: ["1883:1883", "9001:9001"]
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    ports: ["5672:5672", "15672:15672"]
+
+volumes:
+  mysql_data:
+  pg_data:
+  mongo_data:
